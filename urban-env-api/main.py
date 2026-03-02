@@ -40,6 +40,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.middleware import setup_middleware
 from app.core.database import engine
 from app.models.models import Base
 
@@ -147,6 +148,10 @@ app = FastAPI(
 # wildcard would silently break authenticated requests from browsers.
 # We explicitly list allowed origins instead.
 #
+# CORS is registered here (not in setup_middleware) because it requires
+# settings.CORS_ORIGINS — keeping config-dependent wiring in main.py
+# and generic middleware in the middleware package.
+#
 # For development/coursework, we allow localhost on common ports.
 # The CORS_ORIGINS setting can be overridden via environment variable
 # for deployment flexibility.
@@ -158,6 +163,19 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+
+# ---------------------------------------------------------------------------
+# Security Middleware Stack
+#
+# Registers rate limiting, security headers, and request logging.
+# See app/middleware/__init__.py for ordering rationale.
+# CORS must be registered BEFORE our middleware stack because
+# app.add_middleware() prepends (LIFO order), so CORS — added first —
+# ends up innermost, which is correct: preflight OPTIONS requests
+# must be handled before rate limiting or security headers.
+# ---------------------------------------------------------------------------
+setup_middleware(app)
 
 
 # ---------------------------------------------------------------------------

@@ -11,6 +11,9 @@ uvicorn[standard]>=0.32.0,<1.0.0    # ASGI server; [standard] includes uvloop + 
 sqlalchemy[asyncio]>=2.0.0,<3.0.0   # [asyncio] pulls in greenlet for async session support
 asyncpg>=0.30.0,<1.0.0              # Async PostgreSQL driver (used by SQLAlchemy async engine)
 
+# --- Rate Limiting ---
+slowapi>=0.1.9,<1.0.0               # Per-IP rate limiting via limits library + Starlette integration
+
 # --- Configuration ---
 pydantic-settings>=2.0.0,<3.0.0     # Environment variable loading with type validation
 

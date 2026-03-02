@@ -174,6 +174,21 @@ class Settings(BaseSettings):
     ]
 
     # =======================================================================
+    # API KEY MANAGEMENT (MULTI-KEY SUPPORT)
+    # =======================================================================
+    # Single API key for backward compatibility.
+    # This is the original field from .env — kept so existing deployments
+    # continue to work without configuration changes.
+    API_KEY: str = ""
+
+    # Multi-key support: JSON-encoded dict mapping keys to permission tiers.
+    # Format: {"key1": "admin", "key2": "read", "key3": "write"}
+    # If not set, the system falls back to API_KEY with admin permissions.
+    # Set via environment variable:
+    #   API_KEYS='{"abc123": "admin", "reader-key": "read"}'
+    API_KEYS: str = ""
+
+    # =======================================================================
     # API RATE LIMITING
     # =======================================================================
     # Simple rate limiting: max requests per minute per API key.
@@ -181,6 +196,14 @@ class Settings(BaseSettings):
     # For coursework, it exists to demonstrate awareness of the concern
     # and to document in the technical report.
     RATE_LIMIT_PER_MINUTE: int = 60
+
+    # =======================================================================
+    # RATE LIMITING (WRITE OPERATIONS)
+    # =======================================================================
+    # Separate limit for write operations (POST/PUT/DELETE).
+    # Writes are more expensive (DB mutations) so we cap them tighter.
+    # Defaults to 1/3 of the read limit.
+    RATE_LIMIT_WRITES_PER_MINUTE: int = 20
 
     # =======================================================================
     # VALIDATION RULES FOR DATA QUALITY
