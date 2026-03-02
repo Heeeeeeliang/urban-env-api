@@ -1,0 +1,27 @@
+# Urban Environmental Intelligence API — Dependencies
+# ====================================================
+# Pinned to minor versions for reproducible builds.
+# In production, use a lockfile (pip-compile, poetry.lock) for exact pinning.
+
+# --- Web Framework ---
+fastapi>=0.115.0,<1.0.0
+uvicorn[standard]>=0.32.0,<1.0.0    # ASGI server; [standard] includes uvloop + httptools
+
+# --- Database ---
+sqlalchemy[asyncio]>=2.0.0,<3.0.0   # [asyncio] pulls in greenlet for async session support
+asyncpg>=0.30.0,<1.0.0              # Async PostgreSQL driver (used by SQLAlchemy async engine)
+
+# --- Configuration ---
+pydantic-settings>=2.0.0,<3.0.0     # Environment variable loading with type validation
+
+# --- Background Tasks ---
+apscheduler>=3.10.0,<4.0.0          # Scheduled data ingestion (hourly fetches)
+
+# --- External API Clients ---
+httpx>=0.27.0,<1.0.0                # Async HTTP client for OpenAQ and Open-Meteo API calls
+
+# --- AI Integration ---
+anthropic>=0.40.0,<1.0.0            # Anthropic Python SDK for Claude API (AI insight endpoint)
+
+# --- Development ---
+python-dotenv>=1.0.0                # .env file loading (used by pydantic-settings)
