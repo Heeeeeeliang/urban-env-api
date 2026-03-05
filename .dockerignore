@@ -1,0 +1,69 @@
+# =============================================================================
+# .dockerignore — Exclude files from Docker build context
+# =============================================================================
+# Reducing the build context speeds up `docker build` and prevents
+# sensitive files (like .env) from being copied into the image.
+# =============================================================================
+
+# --- Version Control ---
+.git
+.gitignore
+
+# --- Python Artifacts ---
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+*.egg
+dist/
+build/
+
+# --- Virtual Environments ---
+.venv
+venv
+env
+
+# --- Environment & Secrets ---
+# CRITICAL: Never bake secrets into a Docker image.
+# The .env file is read at runtime via docker-compose environment
+# variables, NOT copied into the image.
+.env
+.env.local
+.env.*.local
+
+# --- Testing ---
+tests/
+.pytest_cache
+.coverage
+htmlcov/
+coverage.xml
+
+# --- IDE & Editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Type Checking & Linting ---
+.mypy_cache
+.ruff_cache
+
+# --- Documentation ---
+docs/
+*.md
+LICENSE
+
+# --- Node.js (if any frontend tooling) ---
+node_modules/
+
+# --- Docker (don't recursively include compose files) ---
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db

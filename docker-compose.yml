@@ -1,0 +1,133 @@
+# =============================================================================
+# Urban Environmental Intelligence API — Docker Compose (Production)
+# =============================================================================
+#
+# Services:
+#   api      — FastAPI application with APScheduler background ingestion
+#   postgres — PostgreSQL 15 database with persistent volume
+#
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose logs -f api        # Follow API logs
+#   docker compose down               # Stop all services
+#   docker compose down -v            # Stop and DELETE all data
+#
+# The .env file is loaded automatically by Compose for variable substitution.
+# See .env.example for required variables.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # API Service — FastAPI + Uvicorn + APScheduler
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: urban-env-api
+    restart: unless-stopped
+
+    # Port mapping: host:container
+    # In production behind a reverse proxy (nginx, Traefik), you'd remove
+    # this and let the proxy handle TLS termination and port 443.
+    ports:
+      - "8000:8000"
+
+    # Environment variables.
+    # Values come from the .env file (Compose loads it automatically).
+    # We list them explicitly here rather than using env_file: .env
+    # so it's clear exactly which variables the container receives.
+    environment:
+      # Database connection string pointing to the compose postgres service.
+      # "postgres" here is the DNS name Compose assigns to the postgres
+      # service on the urban-env-network bridge network.
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-urban_env_db}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAQ_API_KEY: ${OPENAQ_API_KEY:-}
+      API_KEY: ${API_KEY:-changeme-in-production}
+      ENVIRONMENT: production
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      INGESTION_INTERVAL_MINUTES: ${INGESTION_INTERVAL_MINUTES:-60}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-3600}
+      # Override CORS for production (restrict to your actual frontend domain)
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+
+    # Service dependency with health condition.
+    # The api container won't start until postgres passes its healthcheck.
+    # This prevents the common failure mode where the API starts before
+    # PostgreSQL is ready to accept connections, causing asyncpg to throw
+    # ConnectionRefusedError on startup.
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - urban-env-network
+
+    # Resource limits (optional, uncomment for production)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512M
+    #       cpus: "1.0"
+    #     reservations:
+    #       memory: 256M
+    #       cpus: "0.5"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Service
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: urban-env-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-urban_env_db}
+      # Performance tuning for small deployments
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+
+    # Named volume for data persistence.
+    # Without this, all data is lost when the container is recreated.
+    # The volume persists across `docker compose down` but is removed
+    # with `docker compose down -v`.
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    # Health check using pg_isready (built into the postgres image).
+    # The api service's depends_on condition waits for this to pass.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-urban_env_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - urban-env-network
+
+    # NOTE: postgres port is NOT exposed to host in production.
+    # Direct database access should go through the API or a secure
+    # bastion host. See docker-compose.dev.yml for development overrides.
+
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
+volumes:
+  postgres-data:
+    name: urban-env-postgres-data
+    # driver: local is the default; explicit for documentation
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+# A dedicated bridge network isolates these services from other containers
+# on the host. Containers on this network can resolve each other by service
+# name (e.g. "postgres" resolves to the postgres container's IP).
+# ---------------------------------------------------------------------------
+networks:
+  urban-env-network:
+    name: urban-env-network
+    driver: bridge

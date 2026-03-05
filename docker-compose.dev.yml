@@ -1,0 +1,48 @@
+# =============================================================================
+# Urban Environmental Intelligence API — Docker Compose (Development Override)
+# =============================================================================
+#
+# This file extends docker-compose.yml with development-specific settings:
+#   - Live code reload via volume mount + uvicorn --reload
+#   - PostgreSQL port exposed to host (for pgAdmin, DBeaver, psql)
+#   - Development environment flag
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Or set COMPOSE_FILE in your shell:
+#   export COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
+#   docker compose up
+# =============================================================================
+
+services:
+  api:
+    # Mount the entire project directory into the container.
+    # Changes to .py files on the host are immediately visible inside
+    # the container, and uvicorn's --reload flag picks them up.
+    volumes:
+      - .:/app
+
+    # Override the production CMD with --reload for live reloading.
+    # --reload watches for file changes and restarts the server.
+    # This is incompatible with --workers > 1, which is fine because
+    # we already use --workers 1 for APScheduler compatibility.
+    command: >
+      uvicorn main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app
+      --log-level debug
+
+    environment:
+      ENVIRONMENT: development
+      # Broader CORS for development tools
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:8080,http://localhost:8888,http://127.0.0.1:8000"
+
+  postgres:
+    # Expose PostgreSQL to the host for local database tools.
+    # In production (docker-compose.yml), this is intentionally omitted
+    # so the database is only accessible from within the Docker network.
+    ports:
+      - "5432:5432"
