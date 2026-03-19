@@ -14,6 +14,8 @@ On top of this data foundation, the API provides five analytical query patterns 
 
 The system also exposes an MCP (Model Context Protocol) server, enabling Claude Desktop and other MCP-compatible clients to query environmental data through native tool integrations — no HTTP required.
 
+- **API Documentation (PDF):** [api_documentation.pdf](./api_documentation.pdf)
+
 ## Live Demo
 
 - **Swagger UI:** [https://urban-env-api.onrender.com/docs](https://urban-env-api.onrender.com/docs)
